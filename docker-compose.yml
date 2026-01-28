@@ -1,0 +1,16 @@
+name: mariadb-service
+
+services:
+
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: 123pass
+      MARIADB_DATABASE: rhair
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8090:8080
