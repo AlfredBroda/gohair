@@ -1,4 +1,7 @@
 test-results/
 tmp/
-routes/
 build/
+bin/
+
+.vscode/
+.DS_Store

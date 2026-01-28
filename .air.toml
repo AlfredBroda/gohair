@@ -3,9 +3,9 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  args_bin = ["server", "--port", "40000"]
-  entrypoint = "./api"
-  cmd = "go build -o ./api ."
+  args_bin = ["--port", "40000", "--addr", "127.0.0.1"]
+  entrypoint = "./bin/server"
+  cmd = "go build -o ./bin/server ."
   delay = 100
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []
@@ -45,7 +45,7 @@ tmp_dir = "tmp"
 [proxy]
   app_port = 40000
   enabled = true
-  proxy_port = 4000
+  proxy_port = 8080
 
 [screen]
   clear_on_rebuild = false
