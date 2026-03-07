@@ -9,7 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	cli "github.com/urfave/cli/v2"
 
-	"github.com/AlfredBroda/gohair/model"
+	"github.com/AlfredBroda/gohair/storage"
+	"github.com/AlfredBroda/gohair/transport"
 )
 
 const (
@@ -79,15 +80,15 @@ func main() {
 				Name:  "migrate",
 				Usage: "Run database migrations",
 				Action: func(c *cli.Context) error {
-					dbConfig := model.DBConfig{
+					dbConfig := storage.DBConfig{
 						DBUser: c.String("dbuser"),
 						DBPass: c.String("dbpass"),
 						DBAddr: c.String("dbaddr"),
 						DBPort: c.Int("dbport"),
 						DBName: c.String("dbname"),
 					}
-					dialector := model.ConfigureMySQL(dbConfig)
-					err := model.Migrate(dialector)
+					dialector := storage.ConfigureMySQL(dbConfig)
+					err := storage.Migrate(dialector)
 					if err != nil {
 						fmt.Println("Database migration failed:", err)
 						return err
@@ -102,7 +103,7 @@ func main() {
 				Env:  c.String("env"),
 				Port: c.Int("port"),
 				Addr: c.String("addr"),
-			}, model.DBConfig{
+			}, storage.DBConfig{
 				DBUser: c.String("dbuser"),
 				DBPass: c.String("dbpass"),
 				DBAddr: c.String("dbaddr"),
@@ -126,7 +127,7 @@ type GinConfig struct {
 	Addr string
 }
 
-func startServer(ginConfig GinConfig, dbConfig model.DBConfig) {
+func startServer(ginConfig GinConfig, dbConfig storage.DBConfig) {
 	if ginConfig.Env == "prod" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -142,11 +143,11 @@ func startServer(ginConfig GinConfig, dbConfig model.DBConfig) {
 		})
 	})
 
-	dialector := model.ConfigureMySQL(dbConfig)
+	dialector := storage.ConfigureMySQL(dbConfig)
 	r.GET("/status/db", func(c *gin.Context) {
 		// Return JSON response
 
-		_, err := model.InitDB(dialector)
+		_, err := storage.InitDB(dialector)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": fmt.Sprintf("Failed to connect to database: %s", err.Error()),
@@ -158,19 +159,8 @@ func startServer(ginConfig GinConfig, dbConfig model.DBConfig) {
 		})
 	})
 
-	r.GET("/a/:slug", func(c *gin.Context) {
-		slug := c.Param("slug")
-		article, err := model.GetArticleBySlug(dialector, slug)
-		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Article not found",
-			})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{
-			"article": article,
-		})
-	})
+	articles := transport.NewArticleRouter(dialector)
+	articles.Register(r)
 
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows) by default
 	listenAddr := fmt.Sprintf("%s:%d", ginConfig.Addr, ginConfig.Port)

@@ -1,6 +1,9 @@
-package model
+package storage
 
-import "gorm.io/gorm"
+import (
+	"github.com/AlfredBroda/gohair/storage/models"
+	"gorm.io/gorm"
+)
 
 func CreateDB(dialector gorm.Dialector) error {
 	db, err := InitDB(dialector)
@@ -28,5 +31,5 @@ func Migrate(dialector gorm.Dialector) error {
 	}
 
 	// Migrate the schema
-	return db.AutoMigrate(&Article{})
+	return db.AutoMigrate(&models.Article{})
 }

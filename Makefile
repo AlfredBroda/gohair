@@ -9,7 +9,7 @@ all: lint build
 
 .PHONY: build
 build:
-	go build -o bin/server ./main.go
+	go build -o bin/server ./cmd/server/main.go
 
 .PHONY: docker-build
 docker-build: lint

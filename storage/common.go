@@ -1,4 +1,4 @@
-package model
+package storage
 
 import (
 	"fmt"
@@ -6,6 +6,10 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
+
+type Dialector interface {
+	gorm.Dialector
+}
 
 type DBConfig struct {
 	DBUser string

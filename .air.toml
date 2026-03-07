@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = ["--port", "40000", "--addr", "127.0.0.1", "--dbaddr", "127.0.0.1", "--dbname", "rhair"]
   entrypoint = "./bin/server"
-  cmd = "go build -o ./bin/server ."
+  cmd = "go build -o ./bin/server ./cmd/server"
   delay = 100
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []
