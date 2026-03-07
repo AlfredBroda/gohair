@@ -19,3 +19,13 @@ func GetArticleBySlug(dialector gorm.Dialector, slug string) (*models.Article, e
 
 	return &article, err
 }
+
+func CreateArticle(dialector gorm.Dialector, article *models.Article) error {
+	db, err := InitDB(dialector)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	return gorm.G[models.Article](db).Create(ctx, article)
+}

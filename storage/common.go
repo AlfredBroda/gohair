@@ -20,7 +20,7 @@ type DBConfig struct {
 }
 
 func ConfigureMySQL(conf DBConfig) gorm.Dialector {
-	return mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", conf.DBUser, conf.DBPass, conf.DBAddr, conf.DBPort, conf.DBName))
+	return mysql.Open(fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true", conf.DBUser, conf.DBPass, conf.DBAddr, conf.DBPort, conf.DBName))
 }
 
 func InitDB(dialector gorm.Dialector) (*gorm.DB, error) {

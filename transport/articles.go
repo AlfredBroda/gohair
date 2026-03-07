@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/AlfredBroda/gohair/storage"
+	"github.com/AlfredBroda/gohair/storage/models"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 func NewArticleRouter(dialector storage.Dialector) *ArticleRouter {
@@ -13,14 +13,16 @@ func NewArticleRouter(dialector storage.Dialector) *ArticleRouter {
 }
 
 type ArticleRouter struct {
-	dialector gorm.Dialector
+	dialector storage.Dialector
 }
 
 func (r *ArticleRouter) Register(engine *gin.Engine) {
-	engine.GET("/a/:slug", r.ArticleHandler)
+	engine.GET("/a/:slug", r.ArticleGet)
+	engine.POST("/a/create", r.ArticleCreate)
 }
 
-func (r *ArticleRouter) ArticleHandler(c *gin.Context) {
+// ArticleGet handles the GET request to retrieve an article by its slug
+func (r *ArticleRouter) ArticleGet(c *gin.Context) {
 	slug := c.Param("slug")
 	article, err := storage.GetArticleBySlug(r.dialector, slug)
 	if err != nil {
@@ -31,6 +33,29 @@ func (r *ArticleRouter) ArticleHandler(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
+		"article": article,
+	})
+}
+
+// ArticleCreate handles the POST request to create a new article
+func (r *ArticleRouter) ArticleCreate(c *gin.Context) {
+	var article models.Article
+	if err := c.BindJSON(&article); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	err := storage.CreateArticle(r.dialector, &article)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to create article",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Article created successfully",
 		"article": article,
 	})
 }
