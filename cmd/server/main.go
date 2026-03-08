@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -87,13 +88,48 @@ func main() {
 						DBPort: c.Int("dbport"),
 						DBName: c.String("dbname"),
 					}
-					dialector := storage.ConfigureMySQL(dbConfig)
-					err := storage.Migrate(dialector)
+					store, err := storage.NewStorage(dbConfig, context.Background())
+					if err != nil {
+						fmt.Println("database initialization failed:", err)
+						return err
+					}
+					err = storage.Migrate(store.DB)
+					if err != nil {
+						fmt.Println("database initialization failed:", err)
+						return err
+					}
+
+					err = storage.Migrate(store.DB)
 					if err != nil {
 						fmt.Println("Database migration failed:", err)
 						return err
 					}
 					fmt.Println("Database migration completed.")
+					return nil
+				},
+			},
+			{
+				Name:  "dropdb",
+				Usage: "Drop the database if it exists",
+				Action: func(c *cli.Context) error {
+					dbConfig := storage.DBConfig{
+						DBUser: c.String("dbuser"),
+						DBPass: c.String("dbpass"),
+						DBAddr: c.String("dbaddr"),
+						DBPort: c.Int("dbport"),
+						DBName: c.String("dbname"),
+					}
+					store, err := storage.NewStorage(dbConfig, context.Background())
+					if err != nil {
+						fmt.Println("Failed to initialize storage:", err)
+						return err
+					}
+					err = store.DropDB()
+					if err != nil {
+						fmt.Println("Failed to drop database:", err)
+						return err
+					}
+					fmt.Println("Database dropped successfully.")
 					return nil
 				},
 			},
@@ -134,6 +170,7 @@ func startServer(ginConfig GinConfig, dbConfig storage.DBConfig) {
 
 	// Create a Gin router with default middleware (logger and recovery)
 	r := gin.Default()
+	r.LoadHTMLGlob("templates/**/*")
 
 	// Define a simple GET endpoint
 	r.GET("/ping", func(c *gin.Context) {
@@ -143,11 +180,17 @@ func startServer(ginConfig GinConfig, dbConfig storage.DBConfig) {
 		})
 	})
 
-	dialector := storage.ConfigureMySQL(dbConfig)
+	ctx, cancel := context.WithCancel(context.Background())
+	store, err := storage.NewStorage(dbConfig, ctx)
+	if err != nil {
+		log.Fatalf("failed to initialize storage: %s", err.Error())
+	}
+	defer cancel()
+	defer store.Close()
+
 	r.GET("/status/db", func(c *gin.Context) {
 		// Return JSON response
-
-		_, err := storage.InitDB(dialector)
+		err := store.DB.Ping()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": fmt.Sprintf("Failed to connect to database: %s", err.Error()),
@@ -159,7 +202,7 @@ func startServer(ginConfig GinConfig, dbConfig storage.DBConfig) {
 		})
 	})
 
-	articles := transport.NewArticleRouter(dialector)
+	articles := transport.NewArticleRouter(store, ctx)
 	articles.Register(r)
 
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows) by default
@@ -169,7 +212,7 @@ func startServer(ginConfig GinConfig, dbConfig storage.DBConfig) {
 		log.Printf("Starting server on %s...", listenAddr)
 	}
 
-	err := r.Run(listenAddr)
+	err = r.Run(listenAddr)
 	if err != nil {
 		log.Fatalf("failed running Gin app: %s", err.Error())
 	}

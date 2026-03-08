@@ -4,6 +4,9 @@ else
 BINDIR = $(shell go env GOPATH)/bin
 endif
 
+-include .env
+export
+
 .PHONY: all
 all: lint build
 
@@ -12,8 +15,8 @@ build:
 	go build -o bin/server ./cmd/server/main.go
 
 .PHONY: docker-build
-docker-build: lint
-	docker build .
+docker: lint
+	docker compose -f docker-compose.yml up -d
 
 .PHONY: run
 run: build
@@ -22,6 +25,18 @@ run: build
 .PHONY: dev
 dev: lint
 	air
+
+.PHONY: migrate-up
+migrate-up:
+	goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) $(GOOSE_DBSTRING) up
+
+.PHONY: migrate-down
+migrate-down:
+	goose -dir $(GOOSE_MIGRATION_DIR) $(GOOSE_DRIVER) $(GOOSE_DBSTRING) down
+
+.PHONY: migrate-create
+migrate-create:
+	goose -s -dir $(GOOSE_MIGRATION_DIR) create migration sql
 
 .PHONY: lint
 lint:
